@@ -23,8 +23,8 @@ async def create_pool(loop, **kw):
         loop=loop                               # 传递消息循环对象loop用于异步执行
     )
 
-# 用于SQL的SELECT语句,sql形参即为sql语句,args表示填入sql的选项值
-# 传入size参数，通过fetchmany()获取最多指定数量的记录，否则通过fetchall()获取所有记录。
+# 用于SQL的SELECT语句,sql形参为sql语句,args为填入sql的选项值
+# 传入size参数，fetchmany()获取最多指定数量的记录，否则通过fetchall()获取所有记录。
 async def select(sql, args, size=None): 
     log(sql, args)
     global __pool
@@ -106,7 +106,7 @@ class TextField(Field):
         super().__init__(name, 'text', False, default)
 
 
-# 这是一个元类,它定义了如何来构造一个类,任何定义了__metaclass__属性或指定了metaclass的都会通过元类定义的构造方法构造类
+# 元类,它定义了如何来构造一个类,任何定义了__metaclass__属性或指定了metaclass的都会通过元类定义的构造方法构造类
 # 任何继承自Model的类,都会自动通过ModelMetaclass扫描映射关系,并存储到自身的类属性
 class ModelMetaclass(type):
 
@@ -247,12 +247,13 @@ class Model(dict, metaclass=ModelMetaclass):
 
     # 通过where条件查询数量
     @classmethod
-    async def findNumber(cls, selectField, where=None, args=None):
+    @asyncio.coroutine
+    def findNumber(cls, selectField, where=None, args=None):
         sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)
-        rs = await select(' '.join(sql), args, 1)
+        rs = yield from select(' '.join(sql), args, 1)
         if len(rs) == 0:
             return None
         return rs[0]['_num_']
